@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
@@ -53,10 +53,119 @@
     .step-watermark { font-size: 64px; }
     .header-h1 { font-size: 40px; }
   }
+
+  /* Nút tải ảnh floating */
+  .download-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+    background: linear-gradient(135deg, #dc2626, #991b1b);
+    color: white;
+    border: none;
+    padding: 12px 18px;
+    border-radius: 9999px;
+    font-weight: 800;
+    font-size: 13px;
+    cursor: pointer;
+    box-shadow: 0 10px 25px rgba(220, 38, 38, 0.4), 0 4px 10px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: transform 0.2s, box-shadow 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-family: inherit;
+  }
+  .download-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 30px rgba(220, 38, 38, 0.5), 0 6px 12px rgba(0,0,0,0.2);
+  }
+  .download-btn:active:not(:disabled) { transform: translateY(0); }
+  .download-btn:disabled { opacity: 0.75; cursor: not-allowed; }
+  .download-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
+  @media (max-width: 640px) {
+    .download-btn { padding: 10px 14px; font-size: 11px; bottom: 16px; right: 16px; }
+    .download-btn svg { width: 15px; height: 15px; }
+  }
+  .capturing .download-btn { visibility: hidden !important; }
+
+  .spinner {
+    width: 16px;
+    height: 16px;
+    border: 2.5px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body class="bg-slate-100">
+<!-- Nút tải ảnh -->
+<button id="downloadBtn" class="download-btn" onclick="exportAsImage()" title="Tải về dạng ảnh PNG">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+    <polyline points="7 10 12 15 17 10"/>
+    <line x1="12" y1="15" x2="12" y2="3"/>
+  </svg>
+  <span id="downloadBtnLabel">Tải ảnh</span>
+</button>
+
 <div id="root"></div>
+
+<!-- html-to-image: chụp trang thành ảnh nét -->
+<script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.13/dist/html-to-image.min.js"></script>
+
+<script>
+async function exportAsImage() {
+  const btn = document.getElementById('downloadBtn');
+  const originalHTML = btn.innerHTML;
+
+  // Kiểm tra thư viện đã load
+  if (typeof htmlToImage === 'undefined') {
+    alert('Thư viện chụp ảnh chưa tải xong. Vui lòng kiểm tra kết nối mạng và thử lại.');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div><span>Đang tạo ảnh...</span>';
+
+  // Ẩn nút khi chụp
+  document.body.classList.add('capturing');
+
+  try {
+    const target = document.getElementById('root');
+
+    // Render ở scale 2x cho ảnh nét
+    const dataUrl = await htmlToImage.toPng(target, {
+      pixelRatio: 2,
+      backgroundColor: '#f1f5f9',
+      cacheBust: true,
+      style: {
+        transform: 'none', // tránh bị offset do CSS transform
+      }
+    });
+
+    // Tải xuống
+    const link = document.createElement('a');
+    const timestamp = new Date().toISOString().slice(0, 10);
+    link.download = `SHS_Quy_Trinh_Xu_Ly_Su_Co_CNTT_${timestamp}.png`;
+    link.href = dataUrl;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+  } catch (err) {
+    console.error('Lỗi khi xuất ảnh:', err);
+    alert('Không thể tạo ảnh. Vui lòng thử lại.\n\nChi tiết: ' + err.message);
+  } finally {
+    document.body.classList.remove('capturing');
+    btn.disabled = false;
+    btn.innerHTML = originalHTML;
+  }
+}
+</script>
 
 <script>
 const steps = [
